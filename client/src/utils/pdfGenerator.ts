@@ -565,7 +565,7 @@ const addInstructionsPage = (
 
 // Main function to generate PDF
 export const generatePDF = async (patternData: PatternData): Promise<void> => {
-  return new Promise<void>(async (resolve, reject) => {
+  return new Promise<void>(async (_resolve, reject) => {
     try {
       // Validate pattern data
       if (!patternData.patternMatrix || !patternData.threadList) {
@@ -681,7 +681,7 @@ export const generatePDF = async (patternData: PatternData): Promise<void> => {
       console.log('Añadiendo lista de hilos');
       
       // Add thread list
-      const threadListYPos = drawThreadLegend(
+      drawThreadLegend(
         doc,
         patternData.threadList,
         patternData.settings.threadType,
