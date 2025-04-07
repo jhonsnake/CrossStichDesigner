@@ -57,9 +57,14 @@ const PatternViewer: React.FC<PatternViewerProps> = ({
     const generatePattern = async () => {
       setIsGenerating(true);
       try {
-        // This would typically be done on the server for more complex images
+        // Get image data from localStorage
+        const imageData = localStorage.getItem(patternData.imagePath);
+        if (!imageData) {
+          throw new Error('Image not found in localStorage');
+        }
+
         const { matrix, colors, patternDifficulty } = await processImage(
-          patternData.imagePath,
+          imageData,
           {
             width: patternData.settings.width,
             height: patternData.settings.height,

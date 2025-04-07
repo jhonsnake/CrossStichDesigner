@@ -158,138 +158,140 @@ const quantizeImageColors = (
 };
 
 // Process image to generate cross-stitch pattern
-export const processImage = async (
-  imagePath: string,
+export const processImage = (
+  imageData: string,
   options: ProcessImageOptions
 ): Promise<ProcessedPatternResult> => {
   return new Promise((resolve, reject) => {
-    // Load the image
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    
-    img.onload = () => {
-      try {
-        // Create canvas to resize and process the image
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        if (!ctx) {
-          reject(new Error('Failed to get canvas context'));
-          return;
-        }
-        
-        // Set canvas dimensions to desired pattern size
-        canvas.width = options.width;
-        canvas.height = options.height;
-        
-        // Draw image on canvas with desired dimensions
-        ctx.drawImage(img, 0, 0, options.width, options.height);
-        
-        // Get image data
-        const imageData = ctx.getImageData(0, 0, options.width, options.height);
-        
-        // Process image data based on color count option
-        const colorCount = options.limitColors ? options.colorCount || 15 : 50;
-        
-        // Quantize image to reduce colors
-        const { imageData: quantizedData, selectedThreads } = quantizeImageColors(
-          imageData.data,
-          options.width,
-          options.height,
-          colorCount,
-          options.threadType
-        );
-        
-        // Put quantized data back on canvas
-        ctx.putImageData(new ImageData(quantizedData, options.width, options.height), 0, 0);
-        
-        // Create pattern matrix
-        const matrix: Array<Array<string>> = [];
-        const colorCounts: Record<string, number> = {};
-        
-        // Initialize the matrix with empty values
-        for (let y = 0; y < options.height; y++) {
-          matrix[y] = [];
-          for (let x = 0; x < options.width; x++) {
-            matrix[y][x] = '';
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          
+          if (!ctx) {
+            reject(new Error('Could not get canvas context'));
+            return;
           }
-        }
-        
-        // Fill the matrix with colors
-        for (let y = 0; y < options.height; y++) {
-          for (let x = 0; x < options.width; x++) {
-            const pixelIndex = (y * options.width + x) * 4;
-            const r = quantizedData[pixelIndex];
-            const g = quantizedData[pixelIndex + 1];
-            const b = quantizedData[pixelIndex + 2];
-            const a = quantizedData[pixelIndex + 3];
-            
-            // Skip transparent pixels
-            if (a < 128) continue;
-            
-            // Convert RGB to hex
-            const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-            
-            // Find closest thread
-            const closestThread = selectedThreads.find(thread => {
-              const threadR = parseInt(thread.color.slice(1, 3), 16);
-              const threadG = parseInt(thread.color.slice(3, 5), 16);
-              const threadB = parseInt(thread.color.slice(5, 7), 16);
-              
-              return Math.abs(threadR - r) <= 5 && 
-                     Math.abs(threadG - g) <= 5 && 
-                     Math.abs(threadB - b) <= 5;
-            });
-            
-            if (closestThread) {
-              matrix[y][x] = closestThread.code;
-              colorCounts[closestThread.code] = (colorCounts[closestThread.code] || 0) + 1;
+          
+          // Set canvas dimensions to desired pattern size
+          canvas.width = options.width;
+          canvas.height = options.height;
+          
+          // Draw image on canvas with desired dimensions
+          ctx.drawImage(img, 0, 0, options.width, options.height);
+          
+          // Get image data
+          const imageData = ctx.getImageData(0, 0, options.width, options.height);
+          
+          // Process image data based on color count option
+          const colorCount = options.limitColors ? options.colorCount || 15 : 50;
+          
+          // Quantize image to reduce colors
+          const { imageData: quantizedData, selectedThreads } = quantizeImageColors(
+            imageData.data,
+            options.width,
+            options.height,
+            colorCount,
+            options.threadType
+          );
+          
+          // Put quantized data back on canvas
+          ctx.putImageData(new ImageData(quantizedData, options.width, options.height), 0, 0);
+          
+          // Create pattern matrix
+          const matrix: Array<Array<string>> = [];
+          const colorCounts: Record<string, number> = {};
+          
+          // Initialize the matrix with empty values
+          for (let y = 0; y < options.height; y++) {
+            matrix[y] = [];
+            for (let x = 0; x < options.width; x++) {
+              matrix[y][x] = '';
             }
           }
-        }
-        
-        // Calculate color counts and skein amounts
-        const colors = selectedThreads.map(thread => {
-          const count = colorCounts[thread.code] || 0;
-          // Rough estimate: 1 skein can cover about 1500 stitches (adjust as needed)
-          const skeins = Math.ceil(count / 1500);
           
-          return {
-            code: thread.code,
-            name: thread.name,
-            color: thread.color,
-            count,
-            skeins,
-          };
-        }).filter(color => color.count > 0)
-         .sort((a, b) => b.count - a.count);
-        
-        // Determine pattern difficulty
-        let patternDifficulty: 'Sencilla' | 'Media' | 'Difícil';
-        
-        if (colors.length <= 10) {
-          patternDifficulty = 'Sencilla';
-        } else if (colors.length <= 20) {
-          patternDifficulty = 'Media';
-        } else {
-          patternDifficulty = 'Difícil';
+          // Fill the matrix with colors
+          for (let y = 0; y < options.height; y++) {
+            for (let x = 0; x < options.width; x++) {
+              const pixelIndex = (y * options.width + x) * 4;
+              const r = quantizedData[pixelIndex];
+              const g = quantizedData[pixelIndex + 1];
+              const b = quantizedData[pixelIndex + 2];
+              const a = quantizedData[pixelIndex + 3];
+              
+              // Skip transparent pixels
+              if (a < 128) continue;
+              
+              // Convert RGB to hex
+              const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+              
+              // Find closest thread
+              const closestThread = selectedThreads.find(thread => {
+                const threadR = parseInt(thread.color.slice(1, 3), 16);
+                const threadG = parseInt(thread.color.slice(3, 5), 16);
+                const threadB = parseInt(thread.color.slice(5, 7), 16);
+                
+                return Math.abs(threadR - r) <= 5 && 
+                       Math.abs(threadG - g) <= 5 && 
+                       Math.abs(threadB - b) <= 5;
+              });
+              
+              if (closestThread) {
+                matrix[y][x] = closestThread.code;
+                colorCounts[closestThread.code] = (colorCounts[closestThread.code] || 0) + 1;
+              }
+            }
+          }
+          
+          // Calculate color counts and skein amounts
+          const colors = selectedThreads.map(thread => {
+            const count = colorCounts[thread.code] || 0;
+            // Rough estimate: 1 skein can cover about 1500 stitches (adjust as needed)
+            const skeins = Math.ceil(count / 1500);
+            
+            return {
+              code: thread.code,
+              name: thread.name,
+              color: thread.color,
+              count,
+              skeins,
+            };
+          }).filter(color => color.count > 0)
+           .sort((a, b) => b.count - a.count);
+          
+          // Determine pattern difficulty
+          let patternDifficulty: 'Sencilla' | 'Media' | 'Difícil';
+          
+          if (colors.length <= 10) {
+            patternDifficulty = 'Sencilla';
+          } else if (colors.length <= 20) {
+            patternDifficulty = 'Media';
+          } else {
+            patternDifficulty = 'Difícil';
+          }
+          
+          // Resolve with pattern data
+          resolve({
+            matrix,
+            colors,
+            patternDifficulty,
+          });
+        } catch (error) {
+          reject(error);
         }
-        
-        // Resolve with pattern data
-        resolve({
-          matrix,
-          colors,
-          patternDifficulty,
-        });
-      } catch (error) {
-        reject(error);
-      }
-    };
-    
-    img.onerror = () => {
-      reject(new Error('Failed to load image'));
-    };
-    
-    img.src = imagePath;
+      };
+      
+      img.onerror = () => {
+        reject(new Error('Failed to load image'));
+      };
+      
+      img.src = imageData;
+    } catch (error) {
+      reject(error);
+    }
   });
 };

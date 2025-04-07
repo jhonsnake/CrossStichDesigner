@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
 interface ImageUploaderProps {
@@ -83,23 +82,22 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUploaded }) => {
   const uploadImage = async (file: File) => {
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('image', file);
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error uploading image');
-      }
-
-      const data = await response.json();
-      onImageUploaded(data.imagePath, file.name);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64Image = e.target?.result as string;
+        const imageKey = 'cross-stitch-current-image';
+        // Limpiar imagen anterior si existe
+        localStorage.removeItem(imageKey);
+        localStorage.setItem(imageKey, base64Image);
+        onImageUploaded(imageKey, file.name);
+        setIsUploading(false);
+      };
+      reader.onerror = () => {
+        throw new Error('Error reading file');
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
-      let message = 'Error al subir la imagen';
+      let message = 'Error al procesar la imagen';
       if (error instanceof Error) {
         message = error.message;
       }
@@ -108,7 +106,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUploaded }) => {
         description: message,
         variant: "destructive"
       });
-    } finally {
       setIsUploading(false);
     }
   };

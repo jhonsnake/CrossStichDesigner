@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import 'jspdf/dist/polyfills.es';
 import { fabricTypes, threadTypes } from '@shared/schema';
 
 // Define types for parameters
@@ -564,137 +565,172 @@ const addInstructionsPage = (
 
 // Main function to generate PDF
 export const generatePDF = async (patternData: PatternData): Promise<void> => {
-  try {
-    if (!patternData.patternMatrix || !patternData.threadList) {
-      console.error('Missing pattern data in generatePDF');
-      throw new Error('Datos de patrón incompletos. Por favor, genera el patrón primero.');
+  return new Promise<void>(async (resolve, reject) => {
+    try {
+      // Validate pattern data
+      if (!patternData.patternMatrix || !patternData.threadList) {
+        throw new Error('Datos de patrón incompletos. Por favor, genera el patrón primero.');
+      }
+
+      // Get image data from localStorage
+      const imageData = localStorage.getItem(patternData.imagePath);
+      if (!imageData) {
+        throw new Error('Imagen no encontrada en localStorage');
+      }
+
+      // Create new PDF
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      console.log('PDF inicializado, añadiendo título');
+      
+      // Add title page
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Patrón de Punto de Cruz', 105, 30, { align: 'center' });
+      
+      // Add image name as pattern name
+      const patternName = patternData.imageFileName.split('.')[0];
+      doc.setFontSize(18);
+      doc.text(patternName, 105, 45, { align: 'center' });
+      
+      // Add creation date
+      const date = new Date().toLocaleDateString('es-ES');
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Creado el: ${date}`, 105, 55, { align: 'center' });
+
+      // Add original image
+      try {
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = imageData;
+        });
+        
+        // Calculate image dimensions to fit in PDF
+        const maxWidth = 160; // mm
+        const maxHeight = 100; // mm
+        let imgWidth = img.width;
+        let imgHeight = img.height;
+        
+        if (imgWidth > maxWidth) {
+          const ratio = maxWidth / imgWidth;
+          imgWidth = maxWidth;
+          imgHeight = imgHeight * ratio;
+        }
+        
+        if (imgHeight > maxHeight) {
+          const ratio = maxHeight / imgHeight;
+          imgHeight = maxHeight;
+          imgWidth = imgWidth * ratio;
+        }
+        
+        const x = (210 - imgWidth) / 2; // center horizontally (A4 width = 210mm)
+        doc.addImage(imageData, 'JPEG', x, 70, imgWidth, imgHeight);
+      } catch (error) {
+        console.error('Error adding image to PDF:', error);
+      }
+      
+      console.log('Añadiendo información del patrón');
+      
+      // Add pattern summary
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Detalles del Patrón', 20, 75);
+      
+      // Add pattern details
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      
+      const getFabricName = (id: string): string => {
+        const fabric = fabricTypes.find(f => f.id === id);
+        return fabric ? fabric.name : id;
+      };
+      
+      const getThreadName = (id: string): string => {
+        const thread = threadTypes.find(t => t.id === id);
+        return thread ? thread.name : id;
+      };
+      
+      const fabricName = getFabricName(patternData.settings.fabricType);
+      const threadName = getThreadName(patternData.settings.threadType);
+      
+      doc.text(`Dimensiones: ${patternData.settings.width} x ${patternData.settings.height} puntos`, 20, 85);
+      doc.text(`Tela: ${fabricName}`, 20, 95);
+      doc.text(`Tipo de hilo: ${threadName}`, 20, 105);
+      doc.text(`Número de colores: ${patternData.threadList.length}`, 20, 115);
+      doc.text(`Dificultad: ${patternData.difficulty || 'Media'}`, 20, 125);
+      
+      console.log('Añadiendo leyenda de símbolos');
+      
+      // Add symbol legend on second page
+      doc.addPage();
+      const legendYPos = drawSymbolLegend(
+        doc,
+        patternData.threadList,
+        patternData.settings.threadType,
+        20,  // start X
+        20   // start Y
+      );
+      
+      console.log('Añadiendo lista de hilos');
+      
+      // Add thread list
+      const threadListYPos = drawThreadLegend(
+        doc,
+        patternData.threadList,
+        patternData.settings.threadType,
+        20,  // start X
+        legendYPos + 20
+      );
+      
+      console.log('Añadiendo instrucciones');
+      
+      // Add instructions page
+      addInstructionsPage(doc, patternData);
+      
+      // Set cell size based on pattern dimensions
+      let cellSize = 2;  // default cell size in mm
+      if (patternData.settings.width <= 50 && patternData.settings.height <= 50) {
+        cellSize = 3;
+      } else if (patternData.settings.width > 100 || patternData.settings.height > 100) {
+        cellSize = 1.5;
+      }
+      
+      console.log('Dibujando cuadrícula del patrón');
+      
+      // Add pattern pages
+      doc.addPage();
+      drawPatternGrid(
+        doc, 
+        patternData.patternMatrix, 
+        patternData.threadList, 
+        10,  // start X
+        20,  // start Y
+        cellSize,
+        190,  // max width
+        250   // max height
+      );
+      
+      console.log('Guardando PDF');
+      
+      // Save PDF with pattern name
+      const fileName = `patron_${patternName}.pdf`;
+      doc.save(fileName);
+      
+      console.log('PDF generado correctamente');
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      if (error instanceof Error) {
+        console.error('Mensaje de error:', error.message);
+        console.error('Stack trace:', error.stack);
+      }
+      reject(error);
     }
-    
-    console.log('Iniciando generación de PDF con:', {
-      dimensions: `${patternData.settings.width}x${patternData.settings.height}`,
-      colors: patternData.threadList.length,
-      matrixSize: `${patternData.patternMatrix.length}x${patternData.patternMatrix[0]?.length || 0}`
-    });
-    
-    // Create new PDF
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-    
-    console.log('PDF inicializado, añadiendo título');
-    
-    // Add title page
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Patrón de Punto de Cruz', 105, 30, { align: 'center' });
-    
-    // Add image name as pattern name
-    const patternName = patternData.imageFileName.split('.')[0];
-    doc.setFontSize(18);
-    doc.text(patternName, 105, 45, { align: 'center' });
-    
-    // Add creation date
-    const date = new Date().toLocaleDateString('es-ES');
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Creado el: ${date}`, 105, 55, { align: 'center' });
-    
-    console.log('Añadiendo información del patrón');
-    
-    // Add pattern summary
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Detalles del Patrón', 20, 75);
-    
-    // Add pattern details
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    
-    const getFabricName = (id: string): string => {
-      const fabric = fabricTypes.find(f => f.id === id);
-      return fabric ? fabric.name : id;
-    };
-    
-    const getThreadName = (id: string): string => {
-      const thread = threadTypes.find(t => t.id === id);
-      return thread ? thread.name : id;
-    };
-    
-    const fabricName = getFabricName(patternData.settings.fabricType);
-    const threadName = getThreadName(patternData.settings.threadType);
-    
-    doc.text(`Dimensiones: ${patternData.settings.width} x ${patternData.settings.height} puntos`, 20, 85);
-    doc.text(`Tela: ${fabricName}`, 20, 95);
-    doc.text(`Tipo de hilo: ${threadName}`, 20, 105);
-    doc.text(`Número de colores: ${patternData.threadList.length}`, 20, 115);
-    doc.text(`Dificultad: ${patternData.difficulty || 'Media'}`, 20, 125);
-    
-    console.log('Añadiendo leyenda de símbolos');
-    
-    // Add symbol legend on second page
-    doc.addPage();
-    const legendYPos = drawSymbolLegend(
-      doc,
-      patternData.threadList,
-      patternData.settings.threadType,
-      20,  // start X
-      20   // start Y
-    );
-    
-    console.log('Añadiendo lista de hilos');
-    
-    // Add thread list
-    const threadListYPos = drawThreadLegend(
-      doc,
-      patternData.threadList,
-      patternData.settings.threadType,
-      20,  // start X
-      legendYPos + 20
-    );
-    
-    console.log('Añadiendo instrucciones');
-    
-    // Add instructions page
-    addInstructionsPage(doc, patternData);
-    
-    // Set cell size based on pattern dimensions
-    let cellSize = 2;  // default cell size in mm
-    if (patternData.settings.width <= 50 && patternData.settings.height <= 50) {
-      cellSize = 3;
-    } else if (patternData.settings.width > 100 || patternData.settings.height > 100) {
-      cellSize = 1.5;
-    }
-    
-    console.log('Dibujando cuadrícula del patrón');
-    
-    // Add pattern pages
-    doc.addPage();
-    drawPatternGrid(
-      doc, 
-      patternData.patternMatrix, 
-      patternData.threadList, 
-      10,  // start X
-      20,  // start Y
-      cellSize,
-      190,  // max width
-      250   // max height
-    );
-    
-    console.log('Guardando PDF');
-    
-    // Save PDF with pattern name
-    const fileName = `patron_${patternName}.pdf`;
-    doc.save(fileName);
-    
-    console.log('PDF generado correctamente');
-  } catch (error) {
-    console.error('Error generando PDF:', error);
-    if (error instanceof Error) {
-      console.error('Mensaje de error:', error.message);
-      console.error('Stack trace:', error.stack);
-    }
-    throw error;
-  }
+  });
 };
