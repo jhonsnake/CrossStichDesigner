@@ -79,18 +79,41 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUploaded }) => {
     }
   }, []);
 
+  const clearLocalStorage = () => {
+    // Crear una lista de claves a eliminar
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('cross-stitch-image-') || key === 'cross-stitch-current-image')) {
+        keysToRemove.push(key);
+      }
+    }
+    // Eliminar las claves
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+  };
+
   const uploadImage = async (file: File) => {
     setIsUploading(true);
     try {
       const reader = new FileReader();
       reader.onload = (e) => {
         const base64Image = e.target?.result as string;
-        const imageKey = 'cross-stitch-current-image';
-        // Limpiar imagen anterior si existe
-        localStorage.removeItem(imageKey);
+        const timestamp = Date.now();
+        const imageKey = `cross-stitch-image-${timestamp}`;
+        
+        // Limpiar todas las imágenes anteriores
+        clearLocalStorage();
+        
+        // Guardar la nueva imagen
         localStorage.setItem(imageKey, base64Image);
         onImageUploaded(imageKey, file.name);
         setIsUploading(false);
+        
+        toast({
+          title: "Imagen cargada",
+          description: "La imagen se ha cargado correctamente",
+          variant: "default"
+        });
       };
       reader.onerror = () => {
         throw new Error('Error reading file');

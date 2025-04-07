@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { processImage } from '@/utils/imageProcessor';
 import ThreadCalculator from '@/components/ThreadCalculator';
+import { useToast } from '@/hooks/use-toast';
 
 interface ThreadColor {
   code: string;
@@ -52,6 +53,7 @@ const PatternViewer: React.FC<PatternViewerProps> = ({
   const [isGenerating, setIsGenerating] = useState(true);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const generatePattern = async () => {
@@ -61,6 +63,11 @@ const PatternViewer: React.FC<PatternViewerProps> = ({
         const imageData = localStorage.getItem(patternData.imagePath);
         if (!imageData) {
           throw new Error('Image not found in localStorage');
+        }
+
+        // Validate image data format
+        if (!imageData.startsWith('data:image')) {
+          throw new Error('Invalid image data format');
         }
 
         const { matrix, colors, patternDifficulty } = await processImage(
@@ -74,6 +81,10 @@ const PatternViewer: React.FC<PatternViewerProps> = ({
           }
         );
         
+        if (!matrix || matrix.length === 0 || !colors || colors.length === 0) {
+          throw new Error('Invalid pattern data generated');
+        }
+
         setPatternMatrix(matrix);
         setThreadList(colors);
         setDifficulty(patternDifficulty);
@@ -82,9 +93,16 @@ const PatternViewer: React.FC<PatternViewerProps> = ({
         onPatternGenerated(matrix, colors, patternDifficulty);
         
         // Draw pattern on canvas
-        drawPatternOnCanvas(matrix, colors);
+        requestAnimationFrame(() => {
+          drawPatternOnCanvas(matrix, colors);
+        });
       } catch (error) {
         console.error('Error generating pattern:', error);
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : 'Error al generar el patrón',
+          variant: "destructive"
+        });
       } finally {
         setIsGenerating(false);
       }

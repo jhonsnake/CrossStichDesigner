@@ -64,9 +64,14 @@ const PatternConfig: React.FC<PatternConfigProps> = ({
                 <div className="bg-white rounded-lg p-2 mb-4">
                   <div className="aspect-square rounded-lg overflow-hidden">
                     <img 
-                      src={imagePath} 
+                      src={localStorage.getItem(imagePath) || ''} 
                       alt="Preview" 
                       className="object-contain w-full h-full"
+                      onError={(e) => {
+                        console.error('Error loading image:', e);
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgMTNoLTJ2LTJoMnYyem0wLTZoLTJ2NGgyVjd6bTQtM0g3djE0aDEwVjR6bTItMmgxNHYxOEg1VjJoMTR6Ii8+PC9zdmc+';
+                      }}
                     />
                   </div>
                 </div>

@@ -3,12 +3,46 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --primary: 230 60% 50%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 250 60% 60%;
+    --secondary-foreground: 210 40% 98%;
+
+    --accent: 280 65% 65%;
+    --accent-foreground: 210 40% 98%;
+
+    --background: 220 25% 97%;
+    --foreground: 220 25% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 25% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 25% 20%;
+
+    --muted: 220 25% 90%;
+    --muted-foreground: 220 25% 40%;
+
+    --border: 220 25% 85%;
+    --input: 220 25% 85%;
+
+    --success: 142 72% 29%;
+    --warning: 38 92% 50%;
+    --error: 0 84% 60%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
   * {
     @apply border-border;
   }
 
   body {
-    @apply font-sans antialiased bg-neutral-50 text-neutral-800;
+    @apply font-sans antialiased bg-background text-foreground;
     font-family: 'Open Sans', sans-serif;
     font-size: 18px;
   }
@@ -16,54 +50,60 @@
 
 @layer components {
   .card-shadow {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    @apply shadow-lg shadow-primary/5;
   }
   
   .button-shadow {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    @apply shadow-md shadow-primary/10;
   }
   
   .pattern-grid-cell {
-    width: 15px;
-    height: 15px;
-    border: 1px solid #ddd;
+    @apply w-[15px] h-[15px] border border-muted;
   }
   
   .thread-color-sample {
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
+    @apply w-6 h-6 rounded;
   }
   
   .help-tooltip {
-    position: relative;
-    display: inline-block;
+    @apply relative inline-block;
   }
   
   .help-tooltip .tooltip-text {
-    visibility: hidden;
-    width: 200px;
-    background-color: #333;
-    color: #fff;
-    text-align: center;
-    border-radius: 6px;
-    padding: 10px;
-    position: absolute;
-    z-index: 1;
-    bottom: 125%;
-    left: 50%;
-    margin-left: -100px;
-    opacity: 0;
-    transition: opacity 0.3s;
+    @apply invisible w-[200px] bg-popover text-popover-foreground text-center rounded-lg p-3
+           absolute z-10 -bottom-2 left-1/2 -translate-x-1/2 translate-y-full
+           opacity-0 transition-opacity duration-300 shadow-lg;
   }
   
   .help-tooltip:hover .tooltip-text {
-    visibility: visible;
-    opacity: 1;
+    @apply visible opacity-100;
   }
   
   .pattern-preview {
-    overflow: auto;
-    position: relative;
+    @apply overflow-auto relative;
+  }
+
+  /* Botones principales */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-md shadow-secondary/20;
+  }
+
+  /* Tarjetas y contenedores */
+  .content-card {
+    @apply bg-card text-card-foreground rounded-xl shadow-lg shadow-primary/5 p-6;
+  }
+
+  /* Campos de formulario */
+  .form-input {
+    @apply bg-background border-input rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary;
+  }
+
+  /* Enlaces */
+  .link {
+    @apply text-primary hover:text-primary/80 transition-colors;
   }
 }
