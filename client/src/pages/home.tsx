@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import StepProgress from '@/components/StepProgress';
@@ -19,6 +19,15 @@ interface PatternSettings {
   limitColors: boolean;
 }
 
+interface PatternData {
+  imagePath: string;
+  imageFileName: string;
+  settings: PatternSettings;
+  patternMatrix?: string[][];
+  threadList?: ThreadColor[];
+  difficulty?: 'Sencilla' | 'Media' | 'Difícil';
+}
+
 interface ThreadColor {
   code: string;
   name: string;
@@ -30,21 +39,29 @@ interface ThreadColor {
 interface PatternData {
   imagePath: string;
   imageFileName: string;
-  settings?: PatternSettings;
-  patternMatrix?: Array<Array<string>>;
+  settings: PatternSettings;
+  patternMatrix?: string[][];
   threadList?: ThreadColor[];
   difficulty?: 'Sencilla' | 'Media' | 'Difícil';
 }
-
 export default function Home() {
   const [currentStep, setCurrentStep] = useState<Step>('upload');
   const [patternData, setPatternData] = useState<PatternData | null>(null);
+
   const { toast } = useToast();
 
   const handleImageUploaded = (imagePath: string, fileName: string) => {
     setPatternData({
       imagePath,
-      imageFileName: fileName
+      imageFileName: fileName,
+      settings: {
+        width: 0,
+        height: 0,
+        fabricType: '',
+        threadType: '',
+        colorCount: 0,
+        limitColors: false
+      }
     });
     setCurrentStep('configure');
     toast({
@@ -114,7 +131,7 @@ export default function Home() {
           
           {currentStep === 'view' && patternData && patternData.settings && (
             <PatternViewer 
-              patternData={patternData}
+              patternData={patternData!}
               onPatternGenerated={handlePatternGenerated}
               onGoBack={() => goToStep('configure')}
               onGoForward={goToDownload}
@@ -123,7 +140,7 @@ export default function Home() {
           
           {currentStep === 'download' && patternData && patternData.settings && (
             <PDFPreview 
-              patternData={patternData}
+              patternData={patternData!}
               onGoBack={() => goToStep('view')}
               onNewPattern={resetPattern}
             />

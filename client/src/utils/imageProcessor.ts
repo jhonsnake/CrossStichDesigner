@@ -1,4 +1,4 @@
-import { fabricTypes, threadTypes } from '@shared/schema';
+import type { Thread } from '@/data/schema';
 import { DMCThreads, AnchorThreads, JPCoatsThreads } from '@/data/threadColors';
 
 // Types
@@ -7,7 +7,7 @@ interface ProcessImageOptions {
   height: number;
   limitColors: boolean;
   colorCount?: number;
-  threadType: string;
+  threadType: Thread['id'];
 }
 
 interface ProcessedPatternResult {
@@ -27,7 +27,7 @@ const findClosestThreadColor = (
   r: number,
   g: number,
   b: number, 
-  threadType: string,
+  threadType: Thread['id'],
   excludedCodes: string[] = []
 ) => {
   // Select the appropriate thread palette
@@ -75,10 +75,10 @@ const findClosestThreadColor = (
 // Function to quantize image into fewer colors
 const quantizeImageColors = (
   imageData: Uint8ClampedArray, 
-  width: number, 
-  height: number, 
+  _width: number, 
+  _height: number, 
   maxColors: number,
-  threadType: string
+  threadType: Thread['id']
 ) => {
   const pixels = [];
   
@@ -227,7 +227,8 @@ export const processImage = (
               if (a < 128) continue;
               
               // Convert RGB to hex
-              const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+              // Convert RGB to hex for debugging if needed
+              // const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
               
               // Find closest thread
               const closestThread = selectedThreads.find(thread => {

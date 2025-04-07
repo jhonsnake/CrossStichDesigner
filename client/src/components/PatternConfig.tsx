@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { fabricTypes, threadTypes } from '@shared/schema';
+import { fabricTypes, threadTypes, FabricType, ThreadType } from '@/data/schema';
 
 interface PatternConfigProps {
   imagePath: string;
@@ -125,7 +125,7 @@ const PatternConfig: React.FC<PatternConfigProps> = ({
                     <SelectValue placeholder="Seleccionar tipo de tela" />
                   </SelectTrigger>
                   <SelectContent>
-                    {fabricTypes.map((fabric) => (
+                    {fabricTypes.map((fabric: FabricType) => (
                       <SelectItem key={fabric.id} value={fabric.id}>
                         {fabric.name}
                       </SelectItem>
@@ -144,7 +144,7 @@ const PatternConfig: React.FC<PatternConfigProps> = ({
                     <SelectValue placeholder="Seleccionar tipo de hilo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {threadTypes.map((thread) => (
+                    {threadTypes.map((thread: ThreadType) => (
                       <SelectItem key={thread.id} value={thread.id}>
                         {thread.name}
                       </SelectItem>

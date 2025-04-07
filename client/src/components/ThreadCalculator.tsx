@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { fabricTypes, threadTypes } from '@shared/schema';
+import { fabricTypes, threadTypes, Thread, Fabric } from '@/data/schema';
 
 interface ThreadColor {
   code: string;
@@ -28,12 +28,12 @@ const ThreadCalculator: React.FC<ThreadCalculatorProps> = ({
   difficulty
 }) => {
   const getFabricName = (id: string): string => {
-    const fabric = fabricTypes.find(f => f.id === id);
+    const fabric = fabricTypes.find((f: Fabric) => f.id === id);
     return fabric ? fabric.name : id;
   };
 
   const getThreadName = (id: string): string => {
-    const thread = threadTypes.find(t => t.id === id);
+    const thread = threadTypes.find((t: Thread) => t.id === id);
     return thread ? thread.name : id;
   };
 
